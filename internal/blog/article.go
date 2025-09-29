@@ -5,6 +5,7 @@ import (
 )
 
 type Article struct {
+	Id        int       `json:"id"`
 	AuthorID  string    `json:"author_id"`
 	Title     string    `json:"title"`
 	Content   string    `json:"content"`
@@ -15,6 +16,7 @@ type Article struct {
 func New(authorID string, title string, content string) *Article {
 	now := time.Now()
 	return &Article{
+		Id:        -1,
 		AuthorID:  authorID,
 		Title:     title,
 		Content:   content,
