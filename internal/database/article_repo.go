@@ -9,6 +9,7 @@ import (
 )
 
 type ArticleRepo interface {
+	GetAll() ([]*blog.Article, error)
 	GetByAuthorId(author_id int) ([]*blog.Article, error)
 	GetById(id int) (*blog.Article, error)
 	Add(article *blog.Article) error
@@ -21,6 +22,31 @@ type SQLArticleRepo struct {
 
 func NewSQLArticleRepo(db *sql.DB) *SQLArticleRepo {
 	return &SQLArticleRepo{db: db}
+}
+
+func (repo *SQLArticleRepo) GetAll() ([]*blog.Article, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	const q = `
+        SELECT id, author_id, title, content, created_at, updated_at
+        FROM articles
+        ORDER BY created_at DESC
+    `
+
+	rows, err := repo.db.QueryContext(ctx, q)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	out, err := scanArticlesUtil(rows)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return out, nil
 }
 
 func (repo *SQLArticleRepo) GetByAuthorId(author_id int) ([]*blog.Article, error) {

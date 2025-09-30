@@ -41,8 +41,10 @@ func main() {
 	}
 
 	fmt.Println("Table articles filled with mock database")
+
 	model := tui.InitialModel()
-	articles, err := database.GetAllArticles(db)
+	article_repo := database.NewSQLArticleRepo(db)
+	articles, err := article_repo.GetAll()
 	if err != nil {
 		fmt.Println(err)
 		return
