@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/viewport"
@@ -9,31 +10,31 @@ import (
 	"github.com/corpus/internal/blog"
 )
 
-type Model struct {
+type BlogVM struct {
 	Username        string
 	Articles        []*blog.Article
 	SelectedArticle int
-	viewport        viewport.Model
-	renderPort      bool
+	articleVM       *ArticleVM
+	renderArticle   bool
 }
 
-func InitialModel() Model {
-	return Model{
+func InitialModel() BlogVM {
+	return BlogVM{
 		Username:        "coleflen",
 		Articles:        []*blog.Article{blog.New("1", "title1", "content1"), blog.New("1", "title2", "content2"), blog.New("1", "title3", "content3"), blog.New("1", "title4", "content4")},
 		SelectedArticle: 0,
-		renderPort:      false,
+		renderArticle:   false,
 	}
 }
 
-func (m Model) Init() tea.Cmd {
+func (m *BlogVM) Init() tea.Cmd {
 	return nil
 }
 
 // ok so I want to add many screens and allow a hierarchical representation. One way is to implement
 // multiple models that follow the pattern then have a master model with a list of models. It would only
 // have to swap the model then I could call the associated methods as normal
-func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m *BlogVM) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 
@@ -52,16 +53,49 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.SelectedArticle++
 			}
 		case "enter":
-			m.renderPort = true
+			if m.articleVM == nil {
+				m.articleVM = &ArticleVM{
+					article:  m.Articles[m.SelectedArticle],
+					ready:    false,
+					viewport: viewport.New(80, 20),
+				}
+			}
+
+			m.renderArticle = true
+			m.articleVM.Update(msg)
+
+		case "esc", "escape":
+			m.renderArticle = false
 		}
 
+	}
+
+	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		if m.articleVM != nil {
+			m.articleVM.Update(msg)
+		}
 	}
 	return m, nil
 }
 
-func (m Model) View() string {
+func (m BlogVM) View() string {
+	// header
+	headerStyle := lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#ffffff", Dark: "#ffffff"}).Background(lipgloss.AdaptiveColor{Light: "#7c3aed", Dark: "#7c3aed"}).Padding(0, 1)
+	headerLeft := " Corpus "
+	headerRight := fmt.Sprintf("user: %s  •  %d articles", m.Username, len(m.Articles))
+	header := headerStyle.Render(headerLeft + " " + headerRight)
 
-	s := "List of Articles\n\n"
+	// footer
+	footerStyle := lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#9a9a9a", Dark: "#6b6b6b"}).Padding(0, 1)
+	footer := footerStyle.Render("q: quit  •  enter: open  •  esc: back")
+
+	if m.renderArticle {
+		// show header, article view, footer
+		return header + "\n\n" + m.articleVM.View() + "\n" + footer
+	}
+
+	s := header + "\n\nList of Articles\n\n"
 
 	var selectedStyle = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#ffffff", Dark: "#ffffff"}).Bold(true)
 	var unselectedStyle = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#9a9a9a", Dark: "#6b6b6b"})
@@ -120,7 +154,7 @@ func (m Model) View() string {
 	}
 
 	// The footer
-	s += "\nPress q to quit.\n"
+	s += footer
 
 	// Send the UI for rendering
 	return s

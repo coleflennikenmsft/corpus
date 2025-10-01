@@ -40,7 +40,9 @@ func FillArticleTable(db *sql.DB) (sql.Result, error) {
 	for i := 1; i <= 10; i++ {
 		author := fmt.Sprintf("author-%d", i)
 		title := fmt.Sprintf("Sample Article %d", i)
-		content := fmt.Sprintf("This is the content for sample article %d.", i)
+
+		// create a richer markdown content for the sample article
+		content := fmt.Sprintf("# %s\n\n_By %s_\n\nThis is an example article written to populate the database for testing purposes.\n\nSample Article %d explores the idea of creating useful placeholder content, and demonstrates code blocks, lists, and links in Markdown.\n\n## Overview\n\n- Purpose: demonstrate article rendering\n- Format: Markdown with headings, code, and lists\n\n## Example Code\n\n```go\npackage main\n\nimport \"fmt\"\n\nfunc main() {\n    fmt.Println(\"Hello from Sample Article %d\")\n}\n```\n\n## Conclusion\n\nThis sample article is intentionally verbose so you can see Markdown rendering in the TUI. Enjoy!\n\n", title, author, i, i)
 
 		r, err := stmt.Exec(author, title, content)
 		if err != nil {
